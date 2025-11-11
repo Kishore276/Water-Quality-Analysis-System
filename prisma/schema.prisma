@@ -1,0 +1,148 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  role          Role      @default(VIEWER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  uploads       Upload[]
+  accounts      Account[]
+  sessions      Session[]
+  
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Area {
+  id          String    @id @default(cuid())
+  name        String
+  latitude    Float?
+  longitude   Float?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  records     Record[]
+  
+  @@index([latitude, longitude])
+  @@map("areas")
+}
+
+model Record {
+  id           String    @id @default(cuid())
+  areaId       String?
+  date         DateTime
+  ph           Float?
+  hardness     Float?
+  tds          Float?
+  turbidity    Float?
+  alkalinity   Float?
+  nitrate      Float?
+  fluoride     Float?
+  chloride     Float?
+  conductivity Float?
+  temperature  Float?
+  wqi          Float?
+  label        String?
+  confidence   Float?
+  source       String?
+  createdAt    DateTime  @default(now())
+  
+  // Relations
+  area         Area?     @relation(fields: [areaId], references: [id])
+  
+  @@index([date])
+  @@index([areaId])
+  @@index([label])
+  @@map("records")
+}
+
+model Upload {
+  id          String    @id @default(cuid())
+  filename    String
+  status      String    @default("PENDING")
+  rowsTotal   Int?
+  rowsOk      Int?
+  rowsFailed  Int?
+  error       String?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  
+  // Relations
+  creator     User?     @relation(fields: [createdBy], references: [id])
+  
+  @@map("uploads")
+}
+
+model ApiKey {
+  id       String    @id @default(cuid())
+  name     String
+  keyHash  String    @unique
+  role     Role      @default(VIEWER)
+  createdAt DateTime  @default(now())
+  
+  @@map("api_keys")
+}
+
+model Setting {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  value       String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("settings")
+}
+
+enum Role {
+  VIEWER
+  ANALYST
+  ADMIN
+}
